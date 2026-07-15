@@ -675,6 +675,7 @@
                     state.salt = generateSalt();
                     state.masterPassword = password;
                     state.passwords = [];
+                    state.encryptionKey = await deriveKey(password, state.salt);
                     await saveData();
                     showMessage('Contraseña maestra creada', 'success');
                 } else {
@@ -682,8 +683,12 @@
                     state.masterPassword = password;
                     const key = await deriveKey(password, state.salt);
 
-                    // Intentar desencriptar un dato pequeño para verificar
-                    await decrypt(state.encryptedData, key);
+                    // Desencriptar datos
+                    if (state.encryptedData && state.encryptedData.data && state.encryptedData.data.length > 0) {
+                        state.passwords = await decrypt(state.encryptedData, key);
+                    } else {
+                        state.passwords = [];
+                    }
                 }
 
                 state.encryptionKey = await deriveKey(password, state.salt);
@@ -691,11 +696,20 @@
                 document.getElementById('loginView').classList.add('hidden');
                 document.getElementById('appView').classList.remove('hidden');
                 document.getElementById('masterPassword').value = '';
+                document.getElementById('message').textContent = '';
+                document.getElementById('message').className = '';
+
+                // Asegurar que passwords sea un array
+                if (!Array.isArray(state.passwords)) {
+                    state.passwords = state.passwords ? [state.passwords] : [];
+                }
+
                 renderPasswords();
                 updateStats();
 
             } catch (error) {
-                showMessage(error.message, 'error');
+                console.error('Error en authenticate:', error);
+                showMessage(error.message || 'Error al autenticar', 'error');
                 state.isAuthenticated = false;
             }
         }
@@ -706,15 +720,40 @@
                 const response = await fetch('data.json');
                 const data = await response.json();
 
-                state.salt = data.salt && data.salt.length > 0 ? hexToArray(data.salt) : null;
-                state.encryptedData = data.encryptedData;
-                state.lastSync = data.lastSync || new Date().toISOString();
-
-                // No desencriptamos hasta que se autentique
+                if (data.salt && data.salt.length > 0) {
+                    state.salt = hexToArray(data.salt);
+                    state.encryptedData = data.encryptedData;
+                    state.lastSync = data.lastSync || new Date().toISOString();
+                } else {
+                    // Si data.json está vacío, intentar cargar desde localStorage
+                    const localData = localStorage.getItem('passwordManagerData');
+                    if (localData) {
+                        const parsed = JSON.parse(localData);
+                        state.salt = parsed.salt && parsed.salt.length > 0 ? hexToArray(parsed.salt) : null;
+                        state.encryptedData = parsed.encryptedData;
+                        state.lastSync = parsed.lastSync || new Date().toISOString();
+                    } else {
+                        state.salt = null;
+                        state.passwords = [];
+                    }
+                }
             } catch (error) {
                 // Primera ejecución o archivo no existe
-                state.salt = null;
-                state.passwords = [];
+                const localData = localStorage.getItem('passwordManagerData');
+                if (localData) {
+                    try {
+                        const parsed = JSON.parse(localData);
+                        state.salt = parsed.salt && parsed.salt.length > 0 ? hexToArray(parsed.salt) : null;
+                        state.encryptedData = parsed.encryptedData;
+                        state.lastSync = parsed.lastSync || new Date().toISOString();
+                    } catch (e) {
+                        state.salt = null;
+                        state.passwords = [];
+                    }
+                } else {
+                    state.salt = null;
+                    state.passwords = [];
+                }
             }
         }
 
@@ -773,6 +812,10 @@
         // Guardar nueva contraseña
         async function savePassword(event) {
             event.preventDefault();
+
+            if (!state.passwords) {
+                state.passwords = [];
+            }
 
             const password = {
                 id: Date.now().toString(),
