@@ -759,7 +759,7 @@
 
         // Guardar datos en archivo
         async function saveData() {
-            if (!state.isAuthenticated || !state.encryptionKey) {
+            if (!state.encryptionKey || !state.salt) {
                 showMessage('No autenticado', 'error');
                 return;
             }
