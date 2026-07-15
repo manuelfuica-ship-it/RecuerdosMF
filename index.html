@@ -696,6 +696,7 @@
                 document.getElementById('loginView').classList.add('hidden');
                 document.getElementById('appView').classList.remove('hidden');
                 document.getElementById('masterPassword').value = '';
+                document.getElementById('masterPassword').parentElement.querySelector('small').textContent = '';
                 document.getElementById('message').textContent = '';
                 document.getElementById('message').className = '';
 
