@@ -428,6 +428,7 @@
                 <button class="btn btn-secondary" id="syncBtn" onclick="syncData()">Sincronizar</button>
                 <button class="btn btn-secondary" id="importBtn" onclick="document.getElementById('importFile').click()">Importar</button>
                 <input type="file" id="importFile" hidden accept=".json" onchange="importData(event)">
+                <button class="btn btn-secondary" id="importDriveBtn" onclick="openGoogleDrivePicker()">Importar de Drive</button>
                 <button class="btn btn-secondary" id="exportBtn" onclick="exportData()">Exportar</button>
                 <button class="btn btn-secondary" id="logoutBtn" onclick="logout()">Salir</button>
             </div>
@@ -532,7 +533,11 @@
         </div>
     </div>
 
+    <script src="https://apis.google.com/js/api.js"></script>
     <script>
+        // Google Drive API Key
+        const GOOGLE_DRIVE_API_KEY = 'AIzaSyDsAwNMHkzp1S4ftN5IRGv7QxZ6p9OaZBE';
+
         // Configuración de seguridad
         const CONFIG = {
             algorithm: 'AES-GCM',
@@ -1001,6 +1006,71 @@
                 showMessage('Datos exportados correctamente', 'success');
             } catch (error) {
                 showMessage('Error al exportar: ' + error.message, 'error');
+            }
+        }
+
+        // Abrir Google Drive Picker
+        function openGoogleDrivePicker() {
+            gapi.load('picker', { callback: createPicker });
+        }
+
+        function createPicker() {
+            const view = new google.picker.View(google.picker.ViewId.DOCS);
+            view.setMimeTypes('application/json');
+
+            const picker = new google.picker.PickerBuilder()
+                .enableFeature(google.picker.Feature.NAV_HIDDEN)
+                .setAppId('RecuerdosMF')
+                .setOAuthToken(null)
+                .addView(view)
+                .setDeveloperKey(GOOGLE_DRIVE_API_KEY)
+                .setCallback(pickerCallback)
+                .build();
+
+            picker.setVisible(true);
+        }
+
+        function pickerCallback(data) {
+            if (data.action === google.picker.Action.PICKED) {
+                const file = data.docs[0];
+                downloadFromGoogleDrive(file.id, file.name);
+            }
+        }
+
+        async function downloadFromGoogleDrive(fileId, fileName) {
+            try {
+                showMessage('Descargando desde Google Drive...', 'info');
+
+                const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_DRIVE_API_KEY}`;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error('No se pudo descargar el archivo');
+                }
+
+                const fileContent = await response.text();
+                const data = JSON.parse(fileContent);
+
+                if (!data.version || !data.salt || !data.encryptedData) {
+                    throw new Error('Archivo de respaldo inválido');
+                }
+
+                if (!confirm('¿Está seguro de que desea importar este archivo de Google Drive?')) {
+                    showMessage('Importación cancelada', 'error');
+                    return;
+                }
+
+                state.salt = hexToArray(data.salt);
+                state.encryptedData = data.encryptedData;
+                state.lastSync = data.lastSync || new Date().toISOString();
+
+                localStorage.setItem('passwordManagerData', JSON.stringify(data));
+
+                showMessage('Datos importados correctamente. Ingrese su contraseña maestra para continuar.', 'success');
+                logout();
+
+            } catch (error) {
+                showMessage('Error al importar: ' + error.message, 'error');
             }
         }
 
