@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Contraseñas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #3b82f6;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #0f172a;
+        }
+
+        .btn-primary:hover {
+            background: #f0f8ff;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff3838;
+        }
+
+        .btn-success {
+            background: #2ed573;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #26de81;
+        }
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .passwords-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .password-card {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .password-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .password-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .password-card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .password-card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .password-card-actions button {
+            padding: 6px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #e0e0e0;
+            color: #333;
+            transition: all 0.2s ease;
+        }
+
+        .password-card-actions button:hover {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .password-field {
+            margin-bottom: 12px;
+        }
+
+        .password-field-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .password-field-value {
+            font-family: 'Monaco', 'Menlo', monospace;
+            word-break: break-all;
+            color: #333;
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .password-hidden {
+            letter-spacing: 3px;
+        }
+
+        .toggle-password {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #3b82f6;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-content form {
+            overflow-y: auto;
+            padding: 30px;
+            padding-bottom: 20px;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            padding: 30px 30px 20px 30px;
+            border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+            padding: 20px 30px;
+            border-top: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .modal-footer button:last-child {
+            margin-left: auto;
+        }
+
+        .modal-footer .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+            border: 1px solid #ccc;
+        }
+
+        .modal-footer .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            background: linear-gradient(135deg, #1e40af 0%, #0f172a 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                max-height: 100vh;
+                border-radius: 0;
+            }
+
+            .header {
+                border-radius: 0;
+            }
+
+            .passwords-list {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .modal-content {
+                margin: 20px;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Gestor de Contraseñas</h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary" id="syncBtn" onclick="syncData()">Sincronizar</button>
+                <button class="btn btn-secondary" id="importBtn" onclick="document.getElementById('importFile').click()">Importar</button>
+                <input type="file" id="importFile" hidden accept=".json" onchange="importData(event)">
+                <button class="btn btn-secondary" id="exportBtn" onclick="exportData()">Exportar</button>
+                <button class="btn btn-secondary" id="logoutBtn" onclick="logout()">Salir</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="loginView" class="login-form">
+                <div class="form-group">
+                    <label>Contraseña Maestra</label>
+                    <input type="password" id="masterPassword" placeholder="Ingrese su contraseña maestra" autofocus>
+                    <small style="color: #999;">Primera vez: cree su contraseña maestra. Siguientes: ingrese para acceder.</small>
+                </div>
+                <button class="btn btn-primary" onclick="authenticate()" style="width: 100%; padding: 14px; font-size: 16px;">Acceder</button>
+            </div>
+
+            <div id="appView" class="hidden">
+                <div id="message"></div>
+
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="totalCount">0</div>
+                        <div class="stat-label">Contraseñas guardadas</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="lastSync">-</div>
+                        <div class="stat-label">Última sincronización</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="searchInput" placeholder="Buscar contraseña..." class="search-box" style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px;">
+                    <button class="btn btn-success" onclick="openAddModal()">+ Agregar</button>
+                </div>
+
+                <div id="passwordsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Agregar Contraseña</div>
+            <form id="addForm" onsubmit="savePassword(event)">
+                <div class="form-group">
+                    <label>Nombre de la aplicación</label>
+                    <input type="text" id="addName" required>
+                </div>
+                <div class="form-group">
+                    <label>Usuario/Email</label>
+                    <input type="text" id="addUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="addPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>URL (opcional)</label>
+                    <input type="text" id="addUrl" placeholder="https://ejemplo.com">
+                </div>
+                <div class="form-group">
+                    <label>Notas (opcional)</label>
+                    <textarea id="addNotes" rows="3"></textarea>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addModal')">Cancelar</button>
+                <button type="submit" form="addForm" class="btn btn-success">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Editar Contraseña</div>
+            <form id="editForm" onsubmit="updatePassword(event)">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label>Nombre de la aplicación</label>
+                    <input type="text" id="editName" required>
+                </div>
+                <div class="form-group">
+                    <label>Usuario/Email</label>
+                    <input type="text" id="editUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="editPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>URL (opcional)</label>
+                    <input type="url" id="editUrl">
+                </div>
+                <div class="form-group">
+                    <label>Notas (opcional)</label>
+                    <textarea id="editNotes" rows="3"></textarea>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editModal')">Cancelar</button>
+                <button type="submit" form="editForm" class="btn btn-success">Actualizar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de seguridad
+        const CONFIG = {
+            algorithm: 'AES-GCM',
+            keySize: 256,
+            tagLength: 128,
+            iterations: 100000,
+            saltLength: 16,
+            ivLength: 12
+        };
+
+        // Estado global
+        let state = {
+            passwords: [],
+            masterPassword: null,
+            encryptionKey: null,
+            isAuthenticated: false,
+            salt: null,
+            lastSync: null
+        };
+
+        // Inicializar app
+        async function init() {
+            try {
+                await loadData();
+                updateStats();
+                attachEventListeners();
+            } catch (error) {
+                console.error('Error al inicializar:', error);
+            }
+        }
+
+        // Derivar clave de contraseña maestra
+        async function deriveKey(password, salt) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+
+            const baseKey = await crypto.subtle.importKey(
+                'raw',
+                data,
+                'PBKDF2',
+                false,
+                ['deriveBits']
+            );
+
+            const bits = await crypto.subtle.deriveBits(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: CONFIG.iterations,
+                    hash: 'SHA-256'
+                },
+                baseKey,
+                CONFIG.keySize
+            );
+
+            return crypto.subtle.importKey(
+                'raw',
+                bits,
+                CONFIG.algorithm,
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        // Generar salt aleatorio
+        function generateSalt() {
+            return crypto.getRandomValues(new Uint8Array(CONFIG.saltLength));
+        }
+
+        // Generar IV aleatorio
+        function generateIV() {
+            return crypto.getRandomValues(new Uint8Array(CONFIG.ivLength));
+        }
+
+        // Convertir array a hex
+        function arrayToHex(array) {
+            return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Convertir hex a array
+        function hexToArray(hex) {
+            const array = new Uint8Array(hex.length / 2);
+            for (let i = 0; i < hex.length; i += 2) {
+                array[i / 2] = parseInt(hex.substr(i, 2), 16);
+            }
+            return array;
+        }
+
+        // Encriptar datos
+        async function encrypt(data, key) {
+            const encoder = new TextEncoder();
+            const iv = generateIV();
+            const encoded = encoder.encode(JSON.stringify(data));
+
+            const encrypted = await crypto.subtle.encrypt(
+                { name: CONFIG.algorithm, iv: iv, tagLength: CONFIG.tagLength },
+                key,
+                encoded
+            );
+
+            return {
+                iv: arrayToHex(iv),
+                data: arrayToHex(new Uint8Array(encrypted))
+            };
+        }
+
+        // Desencriptar datos
+        async function decrypt(encrypted, key) {
+            const decoder = new TextDecoder();
+            const iv = hexToArray(encrypted.iv);
+            const data = hexToArray(encrypted.data);
+
+            try {
+                const decrypted = await crypto.subtle.decrypt(
+                    { name: CONFIG.algorithm, iv: iv, tagLength: CONFIG.tagLength },
+                    key,
+                    data
+                );
+
+                return JSON.parse(decoder.decode(decrypted));
+            } catch (error) {
+                throw new Error('No se pudo desencriptar: contraseña incorrecta o datos dañados');
+            }
+        }
+
+        // Autenticar
+        async function authenticate() {
+            const password = document.getElementById('masterPassword').value;
+
+            if (!password) {
+                showMessage('Ingrese su contraseña maestra', 'error');
+                return;
+            }
+
+            try {
+                showMessage('Autenticando...', 'info');
+
+                // Primera vez: crear contraseña maestra
+                if (!state.salt) {
+                    state.salt = generateSalt();
+                    state.masterPassword = password;
+                    state.passwords = [];
+                    await saveData();
+                    showMessage('Contraseña maestra creada', 'success');
+                } else {
+                    // Verificar contraseña
+                    state.masterPassword = password;
+                    const key = await deriveKey(password, state.salt);
+
+                    // Intentar desencriptar un dato pequeño para verificar
+                    await decrypt(state.encryptedData, key);
+                }
+
+                state.encryptionKey = await deriveKey(password, state.salt);
+                state.isAuthenticated = true;
+                document.getElementById('loginView').classList.add('hidden');
+                document.getElementById('appView').classList.remove('hidden');
+                document.getElementById('masterPassword').value = '';
+                renderPasswords();
+                updateStats();
+
+            } catch (error) {
+                showMessage(error.message, 'error');
+                state.isAuthenticated = false;
+            }
+        }
+
+        // Cargar datos del archivo
+        async function loadData() {
+            try {
+                const response = await fetch('data.json');
+                const data = await response.json();
+
+                state.salt = data.salt && data.salt.length > 0 ? hexToArray(data.salt) : null;
+                state.encryptedData = data.encryptedData;
+                state.lastSync = data.lastSync || new Date().toISOString();
+
+                // No desencriptamos hasta que se autentique
+            } catch (error) {
+                // Primera ejecución o archivo no existe
+                state.salt = null;
+                state.passwords = [];
+            }
+        }
+
+        // Guardar datos en archivo
+        async function saveData() {
+            if (!state.isAuthenticated || !state.encryptionKey) {
+                showMessage('No autenticado', 'error');
+                return;
+            }
+
+            try {
+                const encrypted = await encrypt(state.passwords, state.encryptionKey);
+
+                const data = {
+                    version: 1,
+                    salt: arrayToHex(state.salt),
+                    encryptedData: encrypted,
+                    lastSync: new Date().toISOString()
+                };
+
+                state.lastSync = data.lastSync;
+
+                // Enviar al servidor (o guardarlo localmente)
+                // Nota: En un navegador, necesitarías un backend para guardar esto
+                // Por ahora, mostramos cómo se haría
+                console.log('Datos a guardar:', data);
+
+                // Guardar en localStorage como respaldo
+                localStorage.setItem('passwordManagerData', JSON.stringify(data));
+
+                showMessage('Guardado correctamente', 'success');
+                updateStats();
+            } catch (error) {
+                showMessage('Error al guardar: ' + error.message, 'error');
+            }
+        }
+
+        // Sincronizar
+        async function syncData() {
+            await saveData();
+            await loadData();
+            renderPasswords();
+        }
+
+        // Abrir modal para agregar
+        function openAddModal() {
+            document.getElementById('addForm').reset();
+            document.getElementById('addModal').classList.add('active');
+        }
+
+        // Cerrar modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Guardar nueva contraseña
+        async function savePassword(event) {
+            event.preventDefault();
+
+            const password = {
+                id: Date.now().toString(),
+                nombre: document.getElementById('addName').value,
+                usuario: document.getElementById('addUsername').value,
+                contraseña: document.getElementById('addPassword').value,
+                url: document.getElementById('addUrl').value,
+                notas: document.getElementById('addNotes').value,
+                fechaCreacion: new Date().toISOString()
+            };
+
+            state.passwords.push(password);
+            await saveData();
+            renderPasswords();
+            closeModal('addModal');
+        }
+
+        // Abrir modal para editar
+        function openEditModal(id) {
+            const pwd = state.passwords.find(p => p.id === id);
+            if (!pwd) return;
+
+            document.getElementById('editId').value = pwd.id;
+            document.getElementById('editName').value = pwd.nombre;
+            document.getElementById('editUsername').value = pwd.usuario;
+            document.getElementById('editPassword').value = pwd.contraseña;
+            document.getElementById('editUrl').value = pwd.url || '';
+            document.getElementById('editNotes').value = pwd.notas || '';
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        // Actualizar contraseña
+        async function updatePassword(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('editId').value;
+            const index = state.passwords.findIndex(p => p.id === id);
+
+            if (index === -1) return;
+
+            state.passwords[index] = {
+                ...state.passwords[index],
+                nombre: document.getElementById('editName').value,
+                usuario: document.getElementById('editUsername').value,
+                contraseña: document.getElementById('editPassword').value,
+                url: document.getElementById('editUrl').value,
+                notas: document.getElementById('editNotes').value
+            };
+
+            await saveData();
+            renderPasswords();
+            closeModal('editModal');
+        }
+
+        // Eliminar contraseña
+        async function deletePassword(id) {
+            if (!confirm('¿Está seguro de que desea eliminar esta contraseña?')) return;
+
+            state.passwords = state.passwords.filter(p => p.id !== id);
+            await saveData();
+            renderPasswords();
+        }
+
+        // Copiar al portapapeles
+        async function copyToClipboard(text, field) {
+            try {
+                await navigator.clipboard.writeText(text);
+                showMessage(`${field} copiado al portapapeles`, 'success');
+            } catch (error) {
+                showMessage('Error al copiar', 'error');
+            }
+        }
+
+        // Renderizar contraseñas
+        function renderPasswords() {
+            const container = document.getElementById('passwordsContainer');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            const filtered = state.passwords.filter(pwd =>
+                pwd.nombre.toLowerCase().includes(searchTerm) ||
+                pwd.usuario.toLowerCase().includes(searchTerm)
+            );
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h2>No hay contraseñas</h2><p>Cree una nueva contraseña para comenzar</p></div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="passwords-list">
+                    ${filtered.map(pwd => `
+                        <div class="password-card">
+                            <div class="password-card-header">
+                                <div class="password-card-title">${escapeHtml(pwd.nombre)}</div>
+                                <div class="password-card-actions">
+                                    <button onclick="openEditModal('${pwd.id}')">Editar</button>
+                                    <button onclick="deletePassword('${pwd.id}')" style="background: #ff4757; color: white;">Eliminar</button>
+                                </div>
+                            </div>
+
+                            ${pwd.url ? `
+                                <div class="password-field">
+                                    <div class="password-field-label">URL</div>
+                                    <div class="password-field-value">
+                                        <a href="${escapeAttr(pwd.url)}" target="_blank" style="color: #3b82f6; text-decoration: none;">${escapeHtml(pwd.url)}</a>
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            <div class="password-field">
+                                <div class="password-field-label">Usuario/Email</div>
+                                <div class="password-field-value">
+                                    <span>${escapeHtml(pwd.usuario)}</span>
+                                    <button class="toggle-password" onclick="copyToClipboard('${escapeAttr(pwd.usuario)}', 'Usuario')">Copiar</button>
+                                </div>
+                            </div>
+
+                            <div class="password-field">
+                                <div class="password-field-label">Contraseña</div>
+                                <div class="password-field-value">
+                                    <span class="pwd-display" data-id="${pwd.id}" data-hidden="true">••••••••</span>
+                                    <div style="display: flex; gap: 4px;">
+                                        <button class="toggle-password" onclick="togglePasswordVisibility('${pwd.id}')">Ver</button>
+                                        <button class="toggle-password" onclick="copyToClipboard('${escapeAttr(pwd.contraseña)}', 'Contraseña')">Copiar</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            ${pwd.notas ? `
+                                <div class="password-field">
+                                    <div class="password-field-label">Notas</div>
+                                    <div class="password-field-value">${escapeHtml(pwd.notas)}</div>
+                                </div>
+                            ` : ''}
+
+                            <div class="password-field" style="margin-top: 10px; border-top: 1px solid #e0e0e0; padding-top: 10px;">
+                                <div class="password-field-label">Creado</div>
+                                <div style="font-size: 12px; color: #999;">${new Date(pwd.fechaCreacion).toLocaleString('es-ES')}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Alternar visibilidad de contraseña
+        function togglePasswordVisibility(id) {
+            const pwd = state.passwords.find(p => p.id === id);
+            const display = document.querySelector(`[data-id="${id}"]`);
+
+            const isHidden = display.dataset.hidden === 'true';
+
+            if (isHidden) {
+                display.textContent = escapeHtml(pwd.contraseña);
+                display.dataset.hidden = 'false';
+            } else {
+                display.textContent = '••••••••';
+                display.dataset.hidden = 'true';
+            }
+        }
+
+        // Exportar datos
+        async function exportData() {
+            try {
+                const data = {
+                    version: 1,
+                    salt: arrayToHex(state.salt),
+                    encryptedData: await encrypt(state.passwords, state.encryptionKey),
+                    exportedAt: new Date().toISOString()
+                };
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `contraseñas-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showMessage('Datos exportados correctamente', 'success');
+            } catch (error) {
+                showMessage('Error al exportar: ' + error.message, 'error');
+            }
+        }
+
+        // Importar datos
+        async function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                showMessage('Importando...', 'info');
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+
+                        if (!data.version || !data.salt || !data.encryptedData) {
+                            throw new Error('Archivo de respaldo inválido');
+                        }
+
+                        if (!confirm('¿Está seguro de que desea reemplazar sus datos actuales con los del respaldo importado?')) {
+                            showMessage('Importación cancelada', 'error');
+                            document.getElementById('importFile').value = '';
+                            return;
+                        }
+
+                        state.salt = hexToArray(data.salt);
+                        state.encryptedData = data.encryptedData;
+                        state.lastSync = data.lastSync || new Date().toISOString();
+
+                        // Guardar en localStorage
+                        localStorage.setItem('passwordManagerData', JSON.stringify(data));
+
+                        showMessage('Datos importados correctamente. Ingrese su contraseña maestra para continuar.', 'success');
+                        logout();
+
+                        document.getElementById('importFile').value = '';
+                    } catch (error) {
+                        showMessage('Error al procesar archivo: ' + error.message, 'error');
+                        document.getElementById('importFile').value = '';
+                    }
+                };
+
+                reader.readAsText(file);
+            } catch (error) {
+                showMessage('Error al importar: ' + error.message, 'error');
+            }
+        }
+
+        // Cerrar sesión
+        function logout() {
+            if (confirm('¿Está seguro de que desea cerrar sesión?')) {
+                state.isAuthenticated = false;
+                state.encryptionKey = null;
+                state.masterPassword = null;
+                document.getElementById('masterPassword').value = '';
+                document.getElementById('appView').classList.add('hidden');
+                document.getElementById('loginView').classList.remove('hidden');
+                document.getElementById('masterPassword').focus();
+            }
+        }
+
+        // Mostrar mensaje
+        function showMessage(text, type = 'info') {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+
+            if (type !== 'error') {
+                setTimeout(() => {
+                    messageEl.textContent = '';
+                    messageEl.className = '';
+                }, 3000);
+            }
+        }
+
+        // Actualizar estadísticas
+        function updateStats() {
+            document.getElementById('totalCount').textContent = state.passwords.length;
+            if (state.lastSync) {
+                const date = new Date(state.lastSync);
+                document.getElementById('lastSync').textContent = date.toLocaleTimeString('es-ES');
+            }
+        }
+
+        // Event listeners
+        function attachEventListeners() {
+            document.getElementById('searchInput').addEventListener('input', () => renderPasswords());
+            document.getElementById('masterPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') authenticate();
+            });
+        }
+
+        // Funciones de seguridad
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function escapeAttr(text) {
+            return text.replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+
+        // Iniciar
+        init();
+    </script>
+</body>
+</html>
