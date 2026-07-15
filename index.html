@@ -390,6 +390,43 @@
             color: #666;
         }
 
+        .app-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .app-toolbar .btn {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .app-toolbar {
+                gap: 8px;
+            }
+
+            .app-toolbar .btn {
+                padding: 8px 12px;
+                font-size: 12px;
+                flex: 1;
+                min-width: 80px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-toolbar {
+                gap: 6px;
+            }
+
+            .app-toolbar .btn {
+                padding: 6px 10px;
+                font-size: 11px;
+                min-width: 70px;
+            }
+        }
+
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -472,11 +509,6 @@
         <div class="header">
             <h1>🔐 Gestor de Contraseñas</h1>
             <div class="header-actions">
-                <button class="btn btn-secondary" id="syncBtn" onclick="syncData()">Sincronizar</button>
-                <button class="btn btn-secondary" id="importBtn" onclick="document.getElementById('importFile').click()">Importar</button>
-                <input type="file" id="importFile" hidden accept=".json" onchange="importData(event)">
-                <button class="btn btn-secondary" id="importDriveBtn" onclick="openGoogleDrivePicker()">Importar de Drive</button>
-                <button class="btn btn-secondary" id="exportBtn" onclick="exportData()">Exportar</button>
                 <button class="btn btn-secondary" id="logoutBtn" onclick="logout()">Salir</button>
             </div>
         </div>
@@ -493,6 +525,13 @@
 
             <div id="appView" class="hidden">
                 <div id="message"></div>
+
+                <div class="app-toolbar">
+                    <button class="btn btn-secondary" onclick="syncData()">Sincronizar</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar</button>
+                    <input type="file" id="importFile" hidden accept=".json" onchange="importData(event)">
+                    <button class="btn btn-secondary" onclick="exportData()">Exportar</button>
+                </div>
 
                 <div class="stats">
                     <div class="stat">
