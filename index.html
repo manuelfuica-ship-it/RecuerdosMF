@@ -516,7 +516,6 @@
         <div class="header">
             <h1>🔐 Gestor de Contraseñas</h1>
             <div class="header-actions">
-                <button class="btn btn-secondary" id="logoutBtn" onclick="logout()">Salir</button>
             </div>
         </div>
 
@@ -538,6 +537,7 @@
                     <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar</button>
                     <input type="file" id="importFile" hidden accept=".json" onchange="importData(event)">
                     <button class="btn btn-secondary" onclick="exportData()">Exportar</button>
+                    <button class="btn btn-secondary" onclick="logout()" style="margin-left: auto;">Salir</button>
                 </div>
 
                 <div class="stats">
