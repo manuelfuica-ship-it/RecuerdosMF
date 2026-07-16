@@ -864,6 +864,9 @@
                 // Configurar sincronización en tiempo real
                 setupRealtimeSync();
 
+                // Verificar si hay datos antiguos para migrar
+                await migrateOldDataToSupabase();
+
                 renderPasswords();
                 updateStats();
                 showMessage('✅ Autenticado correctamente', 'success');
@@ -872,6 +875,78 @@
                 console.error('Error en authenticate:', error);
                 showMessage(error.message || 'Error al autenticar', 'error');
                 state.isAuthenticated = false;
+            }
+        }
+
+        // Migrar datos antiguos de localStorage a Supabase
+        async function migrateOldDataToSupabase() {
+            try {
+                // Verificar si hay datos antiguos en localStorage
+                const localData = localStorage.getItem('passwordManagerData');
+                if (!localData) return; // No hay datos antiguos
+
+                const data = JSON.parse(localData);
+
+                // Verificar que tenga estructura antigua (encryptedData con todos los datos juntos)
+                if (!data.encryptedData || !data.encryptedData.iv || !data.encryptedData.data) {
+                    return; // Formato no válido
+                }
+
+                // Desencriptar datos antiguos
+                let oldPasswords = [];
+                try {
+                    oldPasswords = await decrypt(data.encryptedData, state.encryptionKey);
+                    if (!Array.isArray(oldPasswords)) {
+                        oldPasswords = [];
+                    }
+                } catch (error) {
+                    console.error('No se pudo desencriptar datos antiguos:', error);
+                    return;
+                }
+
+                // Si no hay contraseñas antiguas, no hay nada que migrar
+                if (oldPasswords.length === 0) {
+                    return;
+                }
+
+                console.log(`Migrando ${oldPasswords.length} contraseñas antiguas a Supabase...`);
+
+                // Insertar cada contraseña en Supabase con nuevo formato
+                for (const pwd of oldPasswords) {
+                    try {
+                        // Encriptar cada contraseña individualmente con nuevo formato
+                        const encrypted = await encrypt(pwd.contraseña, state.encryptionKey);
+
+                        const passwordData = {
+                            nombre: pwd.nombre,
+                            usuario: pwd.usuario,
+                            contraseña_encriptada: encrypted.data,
+                            contraseña_iv: encrypted.iv,
+                            url: pwd.url || null,
+                            notas: pwd.notas || null,
+                            user_id: state.userId,
+                            created_at: pwd.fechaCreacion || new Date().toISOString()
+                        };
+
+                        // Insertar en Supabase
+                        const { error } = await supabaseClient
+                            .from('passwords')
+                            .insert([passwordData]);
+
+                        if (error) {
+                            console.error('Error migrando contraseña:', error);
+                        }
+                    } catch (error) {
+                        console.error('Error procesando contraseña para migración:', error);
+                    }
+                }
+
+                // Limpiar datos antiguos de localStorage después de migrar
+                localStorage.removeItem('passwordManagerData');
+                console.log('Migración completada');
+
+            } catch (error) {
+                console.error('Error en migración:', error);
             }
         }
 
