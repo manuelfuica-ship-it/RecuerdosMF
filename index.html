@@ -732,7 +732,10 @@
         async function encrypt(data, key) {
             const encoder = new TextEncoder();
             const iv = generateIV();
-            const encoded = encoder.encode(JSON.stringify(data));
+
+            // Si es un string, encriptar directamente. Si es un objeto, convertir a JSON
+            const toEncrypt = typeof data === 'string' ? data : JSON.stringify(data);
+            const encoded = encoder.encode(toEncrypt);
 
             const encrypted = await crypto.subtle.encrypt(
                 { name: CONFIG.algorithm, iv: iv, tagLength: CONFIG.tagLength },
@@ -759,7 +762,14 @@
                     data
                 );
 
-                return JSON.parse(decoder.decode(decrypted));
+                const decryptedText = decoder.decode(decrypted);
+
+                // Intentar parsear como JSON. Si falla, es un string simple
+                try {
+                    return JSON.parse(decryptedText);
+                } catch {
+                    return decryptedText;
+                }
             } catch (error) {
                 throw new Error('No se pudo desencriptar: contraseña incorrecta o datos dañados');
             }
@@ -808,15 +818,32 @@
                     console.error('Error cargando contraseñas:', pwdError);
                     state.passwords = [];
                 } else {
-                    // Convertir datos de Supabase al formato local
-                    state.passwords = passwords.map(pwd => ({
-                        id: pwd.id,
-                        nombre: pwd.nombre,
-                        usuario: pwd.usuario,
-                        contraseña: pwd.contraseña_encriptada,
-                        url: pwd.url || '',
-                        notas: pwd.notas || '',
-                        fechaCreacion: pwd.created_at
+                    // Convertir datos de Supabase al formato local y desencriptar
+                    state.passwords = await Promise.all(passwords.map(async (pwd) => {
+                        let decryptedPassword = pwd.contraseña_encriptada;
+
+                        // Desencriptar si existe IV (contraseña encriptada)
+                        if (pwd.contraseña_iv && pwd.contraseña_encriptada) {
+                            try {
+                                decryptedPassword = await decrypt({
+                                    iv: pwd.contraseña_iv,
+                                    data: pwd.contraseña_encriptada
+                                }, state.encryptionKey);
+                            } catch (error) {
+                                console.error('Error desencriptando contraseña:', error);
+                                decryptedPassword = '(No se pudo desencriptar)';
+                            }
+                        }
+
+                        return {
+                            id: pwd.id,
+                            nombre: pwd.nombre,
+                            usuario: pwd.usuario,
+                            contraseña: decryptedPassword,
+                            url: pwd.url || '',
+                            notas: pwd.notas || '',
+                            fechaCreacion: pwd.created_at
+                        };
                     }));
                 }
 
@@ -869,7 +896,7 @@
 
         // Recargar y refrescar UI
         async function loadAndRefresh() {
-            if (!state.userId) return;
+            if (!state.userId || !state.encryptionKey) return;
 
             const { data: passwords, error } = await supabaseClient
                 .from('passwords')
@@ -877,14 +904,31 @@
                 .eq('user_id', state.userId);
 
             if (!error && passwords) {
-                state.passwords = passwords.map(pwd => ({
-                    id: pwd.id,
-                    nombre: pwd.nombre,
-                    usuario: pwd.usuario,
-                    contraseña: pwd.contraseña_encriptada,
-                    url: pwd.url || '',
-                    notas: pwd.notas || '',
-                    fechaCreacion: pwd.created_at
+                state.passwords = await Promise.all(passwords.map(async (pwd) => {
+                    let decryptedPassword = pwd.contraseña_encriptada;
+
+                    // Desencriptar si existe IV (contraseña encriptada)
+                    if (pwd.contraseña_iv && pwd.contraseña_encriptada) {
+                        try {
+                            decryptedPassword = await decrypt({
+                                iv: pwd.contraseña_iv,
+                                data: pwd.contraseña_encriptada
+                            }, state.encryptionKey);
+                        } catch (error) {
+                            console.error('Error desencriptando contraseña:', error);
+                            decryptedPassword = '(No se pudo desencriptar)';
+                        }
+                    }
+
+                    return {
+                        id: pwd.id,
+                        nombre: pwd.nombre,
+                        usuario: pwd.usuario,
+                        contraseña: decryptedPassword,
+                        url: pwd.url || '',
+                        notas: pwd.notas || '',
+                        fechaCreacion: pwd.created_at
+                    };
                 }));
 
                 renderPasswords();
@@ -991,16 +1035,22 @@
         async function savePassword(event) {
             event.preventDefault();
 
-            if (!state.isAuthenticated || !state.userId) {
+            if (!state.isAuthenticated || !state.userId || !state.encryptionKey) {
                 showMessage('No autenticado', 'error');
                 return;
             }
 
             try {
+                const plainPassword = document.getElementById('addPassword').value;
+
+                // Encriptar la contraseña
+                const encrypted = await encrypt(plainPassword, state.encryptionKey);
+
                 const passwordData = {
                     nombre: document.getElementById('addName').value,
                     usuario: document.getElementById('addUsername').value,
-                    contraseña_encriptada: document.getElementById('addPassword').value,
+                    contraseña_encriptada: encrypted.data,
+                    contraseña_iv: encrypted.iv,
                     url: document.getElementById('addUrl').value || null,
                     notas: document.getElementById('addNotes').value || null,
                     user_id: state.userId,
@@ -1027,13 +1077,14 @@
         }
 
         // Abrir modal para editar
-        function openEditModal(id) {
+        async function openEditModal(id) {
             const pwd = state.passwords.find(p => p.id === id);
             if (!pwd) return;
 
             document.getElementById('editId').value = pwd.id;
             document.getElementById('editName').value = pwd.nombre;
             document.getElementById('editUsername').value = pwd.usuario;
+            // La contraseña ya está desencriptada en state.passwords
             document.getElementById('editPassword').value = pwd.contraseña;
             document.getElementById('editUrl').value = pwd.url || '';
             document.getElementById('editNotes').value = pwd.notas || '';
@@ -1044,18 +1095,23 @@
         async function updatePassword(event) {
             event.preventDefault();
 
-            if (!state.isAuthenticated || !state.userId) {
+            if (!state.isAuthenticated || !state.userId || !state.encryptionKey) {
                 showMessage('No autenticado', 'error');
                 return;
             }
 
             try {
                 const id = document.getElementById('editId').value;
+                const plainPassword = document.getElementById('editPassword').value;
+
+                // Encriptar la contraseña
+                const encrypted = await encrypt(plainPassword, state.encryptionKey);
 
                 const passwordData = {
                     nombre: document.getElementById('editName').value,
                     usuario: document.getElementById('editUsername').value,
-                    contraseña_encriptada: document.getElementById('editPassword').value,
+                    contraseña_encriptada: encrypted.data,
+                    contraseña_iv: encrypted.iv,
                     url: document.getElementById('editUrl').value || null,
                     notas: document.getElementById('editNotes').value || null,
                     updated_at: new Date().toISOString()
@@ -1468,15 +1524,25 @@
         }
 
         // Cerrar sesión
-        function logout() {
+        async function logout() {
             if (confirm('¿Está seguro de que desea cerrar sesión?')) {
+                try {
+                    // Cerrar sesión en Supabase
+                    await supabaseClient.auth.signOut();
+                } catch (error) {
+                    console.error('Error al cerrar sesión:', error);
+                }
+
                 state.isAuthenticated = false;
                 state.encryptionKey = null;
                 state.masterPassword = null;
-                document.getElementById('masterPassword').value = '';
+                state.userId = null;
+                state.userEmail = null;
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
                 document.getElementById('appView').classList.add('hidden');
                 document.getElementById('loginView').classList.remove('hidden');
-                document.getElementById('masterPassword').focus();
+                document.getElementById('loginEmail').focus();
             }
         }
 
