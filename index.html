@@ -136,12 +136,29 @@
         }
 
         .btn-primary {
-            background: white;
-            color: #0f172a;
+            background: #3b82f6;
+            color: white;
+            font-weight: 600;
+            border: 2px solid #3b82f6;
         }
 
         .btn-primary:hover {
-            background: #f0f8ff;
+            background: #2563eb;
+            border-color: #2563eb;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .toggle-password-login {
+            background: #10b981 !important;
+            color: white !important;
+            padding: 10px 16px !important;
+            border-radius: 6px !important;
+            border: none !important;
+            font-weight: 600 !important;
+        }
+
+        .toggle-password-login:hover {
+            background: #059669 !important;
         }
 
         .btn-secondary {
@@ -555,7 +572,7 @@
                     <label>Contraseña</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <input type="password" id="loginPassword" placeholder="Ingrese su contraseña" autocomplete="current-password" style="flex: 1;">
-                        <button type="button" class="toggle-password" onclick="toggleLoginPasswordVisibility()" style="padding: 8px 12px; background: #3b82f6; color: white; border-radius: 4px; cursor: pointer; font-size: 13px; border: none;">Ver</button>
+                        <button type="button" class="toggle-password-login" onclick="toggleLoginPasswordVisibility()">Ver</button>
                     </div>
                 </div>
                 <button class="btn btn-primary" onclick="authenticate()" style="width: 100%; padding: 14px; font-size: 16px;">Acceder</button>
