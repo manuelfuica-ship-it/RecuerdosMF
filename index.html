@@ -958,16 +958,48 @@
 
                 for (const pwd of oldPasswords) {
                     try {
-                        // Validar y convertir campos a strings
-                        const nombre = String(pwd.nombre || '').trim();
-                        const usuario = String(pwd.usuario || '').trim();
-                        const contraseña = String(pwd.contraseña || '').trim();
-                        const url = pwd.url ? String(pwd.url).trim() : null;
-                        const notas = pwd.notas ? String(pwd.notas).trim() : null;
+                        // Validar y convertir campos a strings de forma muy defensiva
+                        let nombre, usuario, contraseña, url, notas;
 
-                        // Saltar si faltan campos obligatorios
-                        if (!nombre || !usuario || !contraseña) {
-                            console.warn('Contraseña incompleta, saltando:', pwd);
+                        try {
+                            nombre = String(pwd.nombre || '').trim();
+                            if (!nombre || nombre === 'undefined' || nombre === 'null') {
+                                throw new Error('Nombre inválido');
+                            }
+                        } catch (e) {
+                            console.warn('Nombre inválido:', pwd.nombre);
+                            fallidas++;
+                            continue;
+                        }
+
+                        try {
+                            usuario = String(pwd.usuario || '').trim();
+                            if (!usuario || usuario === 'undefined' || usuario === 'null') {
+                                throw new Error('Usuario inválido');
+                            }
+                        } catch (e) {
+                            console.warn('Usuario inválido:', pwd.usuario);
+                            fallidas++;
+                            continue;
+                        }
+
+                        try {
+                            contraseña = String(pwd.contraseña || '').trim();
+                            if (!contraseña || contraseña === 'undefined' || contraseña === 'null') {
+                                throw new Error('Contraseña inválida');
+                            }
+                        } catch (e) {
+                            console.warn('Contraseña inválida:', pwd.contraseña);
+                            fallidas++;
+                            continue;
+                        }
+
+                        url = pwd.url && String(pwd.url).trim() ? String(pwd.url).trim() : null;
+                        notas = pwd.notas && String(pwd.notas).trim() ? String(pwd.notas).trim() : null;
+
+                        // Validar que campos tengan contenido válido
+                        if (!nombre.match(/^.+$/) || !usuario.match(/^.+$/)) {
+                            console.warn('Campos insuficientes:', pwd);
                             fallidas++;
                             continue;
                         }
