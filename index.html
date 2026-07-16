@@ -923,18 +923,35 @@
                 console.log(`Migrando ${oldPasswords.length} contraseñas antiguas a Supabase...`);
 
                 // Insertar cada contraseña en Supabase con nuevo formato
+                let migradas = 0;
+                let fallidas = 0;
+
                 for (const pwd of oldPasswords) {
                     try {
+                        // Validar y convertir campos a strings
+                        const nombre = String(pwd.nombre || '').trim();
+                        const usuario = String(pwd.usuario || '').trim();
+                        const contraseña = String(pwd.contraseña || '').trim();
+                        const url = pwd.url ? String(pwd.url).trim() : null;
+                        const notas = pwd.notas ? String(pwd.notas).trim() : null;
+
+                        // Saltar si faltan campos obligatorios
+                        if (!nombre || !usuario || !contraseña) {
+                            console.warn('Contraseña incompleta, saltando:', pwd);
+                            fallidas++;
+                            continue;
+                        }
+
                         // Encriptar cada contraseña individualmente con nuevo formato
-                        const encrypted = await encrypt(pwd.contraseña, state.encryptionKey);
+                        const encrypted = await encrypt(contraseña, state.encryptionKey);
 
                         const passwordData = {
-                            nombre: pwd.nombre,
-                            usuario: pwd.usuario,
+                            nombre: nombre,
+                            usuario: usuario,
                             contraseña_encriptada: encrypted.data,
                             contraseña_iv: encrypted.iv,
-                            url: pwd.url || null,
-                            notas: pwd.notas || null,
+                            url: url,
+                            notas: notas,
                             user_id: state.userId,
                             created_at: pwd.fechaCreacion || new Date().toISOString()
                         };
@@ -946,10 +963,23 @@
 
                         if (error) {
                             console.error('Error migrando contraseña:', error);
+                            fallidas++;
+                        } else {
+                            migradas++;
                         }
                     } catch (error) {
                         console.error('Error procesando contraseña para migración:', error);
+                        fallidas++;
                     }
+                }
+
+                console.log(`Migración completada: ${migradas} exitosas, ${fallidas} fallidas de ${oldPasswords.length}`);
+
+                if (migradas > 0) {
+                    showMessage(`✅ Se migraron ${migradas} contraseñas a Supabase`, 'success');
+                }
+                if (fallidas > 0) {
+                    showMessage(`⚠️ ${fallidas} contraseñas no pudieron migrarse (datos incompletos)`, 'error');
                 }
 
                 // Limpiar datos antiguos de localStorage después de migrar
