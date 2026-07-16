@@ -820,6 +820,12 @@
             }
         }
 
+        // Sanitizar string: asegura que sea string, reemplaza null/undefined por vacío
+        function sanitizeString(str) {
+            if (!str) return '';
+            return String(str);
+        }
+
         // Autenticar con Supabase
         async function authenticate() {
             const email = document.getElementById('loginEmail').value;
@@ -1123,11 +1129,11 @@
 
                     return {
                         id: pwd.id,
-                        nombre: pwd.nombre,
-                        usuario: pwd.usuario,
+                        nombre: sanitizeString(pwd.nombre),
+                        usuario: sanitizeString(pwd.usuario),
                         contraseña: decryptedPassword,
-                        url: pwd.url || '',
-                        notas: pwd.notas || '',
+                        url: sanitizeString(pwd.url),
+                        notas: sanitizeString(pwd.notas),
                         fechaCreacion: pwd.created_at
                     };
                 }));
@@ -1511,8 +1517,8 @@
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
 
             const filtered = state.passwords.filter(pwd =>
-                pwd.nombre.toLowerCase().includes(searchTerm) ||
-                pwd.usuario.toLowerCase().includes(searchTerm)
+                (pwd.nombre || '').toLowerCase().includes(searchTerm) ||
+                (pwd.usuario || '').toLowerCase().includes(searchTerm)
             );
 
             if (filtered.length === 0) {
@@ -1952,6 +1958,7 @@
 
         // Funciones de seguridad
         function escapeHtml(text) {
+            if (!text) return '';
             const map = {
                 '&': '&amp;',
                 '<': '&lt;',
@@ -1959,11 +1966,12 @@
                 '"': '&quot;',
                 "'": '&#039;'
             };
-            return text.replace(/[&<>"']/g, m => map[m]);
+            return String(text).replace(/[&<>"']/g, m => map[m]);
         }
 
         function escapeAttr(text) {
-            return text.replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+            if (!text) return '';
+            return String(text).replace(/"/g, '&quot;').replace(/'/g, '&#039;');
         }
 
         // Iniciar
