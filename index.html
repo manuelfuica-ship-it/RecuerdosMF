@@ -620,6 +620,16 @@
                 flex-direction: column;
                 gap: 8px;
             }
+
+            .password-card-actions {
+                gap: 8px;
+            }
+
+            .password-card-actions button {
+                padding: 12px 10px;
+                font-size: 13px;
+                min-height: 44px;
+            }
         }
 
         .loading {
@@ -1623,10 +1633,6 @@
                         <div class="password-card">
                             <div class="password-card-header">
                                 <div class="password-card-title">${escapeHtml(pwd.nombre)}</div>
-                                <div class="password-card-actions">
-                                    <button onclick="openEditModal('${pwd.id}')">Editar</button>
-                                    <button onclick="deletePassword('${pwd.id}')" style="background: #ff4757; color: white;">Eliminar</button>
-                                </div>
                             </div>
 
                             ${pwd.url ? `
@@ -1667,6 +1673,11 @@
                             <div class="password-field" style="margin-top: 10px; border-top: 1px solid #e0e0e0; padding-top: 10px;">
                                 <div class="password-field-label">Creado</div>
                                 <div style="font-size: 12px; color: #999;">${new Date(pwd.fechaCreacion).toLocaleString('es-ES')}</div>
+                            </div>
+
+                            <div class="password-card-actions" style="margin-top: 15px; gap: 10px; border-top: 1px solid #e0e0e0; padding-top: 15px;">
+                                <button onclick="openEditModal('${pwd.id}')" style="flex: 1;">Editar</button>
+                                <button onclick="deletePassword('${pwd.id}')" style="flex: 1; background: #ff4757; color: white;">Eliminar</button>
                             </div>
                         </div>
                     `).join('')}
