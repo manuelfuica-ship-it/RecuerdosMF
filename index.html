@@ -626,9 +626,15 @@
     </div>
 
     <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Google Drive API Key
         const GOOGLE_DRIVE_API_KEY = 'AIzaSyDsAwNMHkzp1S4ftN5IRGv7QxZ6p9OaZBE';
+
+        // Supabase Client
+        const SUPABASE_URL = 'https://gzcrgmvvlqnreijcxsdc.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_8zQsKMpG-Ret5-y5jC7P9w_Bk0oazZg';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // Configuración de seguridad
         const CONFIG = {
