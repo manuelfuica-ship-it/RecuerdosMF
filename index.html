@@ -1289,10 +1289,10 @@
             if (!pwd) return;
 
             document.getElementById('editId').value = pwd.id;
-            document.getElementById('editName').value = pwd.nombre;
-            document.getElementById('editUsername').value = pwd.usuario;
+            document.getElementById('editName').value = pwd.nombre || '';
+            document.getElementById('editUsername').value = pwd.usuario || '';
             // La contraseña ya está desencriptada en state.passwords
-            document.getElementById('editPassword').value = pwd.contraseña;
+            document.getElementById('editPassword').value = pwd.contraseña || '';
             document.getElementById('editUrl').value = pwd.url || '';
             document.getElementById('editNotes').value = pwd.notas || '';
             document.getElementById('editModal').classList.add('active');
@@ -1386,7 +1386,7 @@
             const duplicates = [];
 
             for (const pwd of state.passwords) {
-                const key = `${pwd.nombre.toLowerCase().trim()}|${pwd.usuario.toLowerCase().trim()}`;
+                const key = `${(pwd.nombre || '').toLowerCase().trim()}|${(pwd.usuario || '').toLowerCase().trim()}`;
                 if (!duplicateMap[key]) {
                     duplicateMap[key] = [];
                 }
@@ -1422,7 +1422,7 @@
                 // Agrupar por nombre+usuario
                 const groups = {};
                 for (const pwd of state.passwords) {
-                    const key = `${pwd.nombre.toLowerCase().trim()}|${pwd.usuario.toLowerCase().trim()}`;
+                    const key = `${(pwd.nombre || '').toLowerCase().trim()}|${(pwd.usuario || '').toLowerCase().trim()}`;
                     if (!groups[key]) {
                         groups[key] = [];
                     }
