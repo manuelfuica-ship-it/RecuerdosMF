@@ -874,7 +874,7 @@
             }
         }
 
-        // Sincronización con polling (cada 5 segundos)
+        // Sincronización con polling (cada 2 segundos)
         let pollInterval = null;
 
         function setupRealtimeSync() {
@@ -885,14 +885,14 @@
                 clearInterval(pollInterval);
             }
 
-            // Actualizar cada 5 segundos
+            // Actualizar cada 2 segundos para sincronización más rápida
             pollInterval = setInterval(() => {
                 if (state.isAuthenticated && state.userId) {
                     loadAndRefresh();
                 }
-            }, 5000);
+            }, 2000);
 
-            console.log('Polling iniciado (5 segundos)');
+            console.log('Polling iniciado (2 segundos)');
         }
 
         // Recargar y refrescar UI
