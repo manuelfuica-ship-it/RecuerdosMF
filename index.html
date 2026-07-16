@@ -1571,10 +1571,25 @@
 
         // Event listeners
         function attachEventListeners() {
-            document.getElementById('searchInput').addEventListener('input', () => renderPasswords());
-            document.getElementById('masterPassword').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') authenticate();
-            });
+            const searchInput = document.getElementById('searchInput');
+            const loginPassword = document.getElementById('loginPassword');
+            const loginEmail = document.getElementById('loginEmail');
+
+            if (searchInput) {
+                searchInput.addEventListener('input', () => renderPasswords());
+            }
+
+            if (loginPassword) {
+                loginPassword.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') authenticate();
+                });
+            }
+
+            if (loginEmail) {
+                loginEmail.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') authenticate();
+                });
+            }
         }
 
         // Funciones de seguridad
