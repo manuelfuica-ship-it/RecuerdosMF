@@ -581,7 +581,8 @@
 
                 <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
                     <input type="text" id="searchInput" placeholder="Buscar contraseña..." class="search-box" style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; min-width: 200px;">
-                    <button class="btn btn-secondary" onclick="showDuplicates()" style="background: #ff9800; color: white;">🔍 Duplicados</button>
+                    <button class="btn btn-secondary" onclick="showDuplicates()" style="background: #ff9800; color: white;">🔍 Ver Duplicados</button>
+                    <button class="btn btn-secondary" onclick="cleanAllDuplicates()" style="background: #f44336; color: white;">🗑️ Limpiar</button>
                     <button class="btn btn-success" onclick="openAddModal()">+ Agregar</button>
                 </div>
 
@@ -1343,6 +1344,50 @@
             }
 
             return duplicates;
+        }
+
+        // Limpiar todos los duplicados automáticamente
+        async function cleanAllDuplicates() {
+            const duplicates = findDuplicates();
+
+            if (duplicates.length === 0) {
+                showMessage('✅ No hay duplicados para limpiar', 'success');
+                return;
+            }
+
+            if (!confirm(`Se eliminarán ${duplicates.length} contraseñas duplicadas. ¿Continuar?`)) {
+                return;
+            }
+
+            showMessage('Limpiando duplicados...', 'info');
+
+            // Agrupar por nombre+usuario
+            const groups = {};
+            for (const pwd of state.passwords) {
+                const key = `${pwd.nombre.toLowerCase().trim()}|${pwd.usuario.toLowerCase().trim()}`;
+                if (!groups[key]) {
+                    groups[key] = [];
+                }
+                groups[key].push(pwd);
+            }
+
+            // Eliminar duplicados más antiguos, mantener más reciente
+            let eliminadas = 0;
+            for (const key in groups) {
+                if (groups[key].length > 1) {
+                    // Ordenar por fecha (más reciente al final)
+                    groups[key].sort((a, b) => new Date(a.fechaCreacion) - new Date(b.fechaCreacion));
+
+                    // Eliminar todas excepto la última (más reciente)
+                    for (let i = 0; i < groups[key].length - 1; i++) {
+                        await deletePassword(groups[key][i].id);
+                        eliminadas++;
+                    }
+                }
+            }
+
+            showMessage(`✅ Se eliminaron ${eliminadas} duplicados`, 'success');
+            renderPasswords();
         }
 
         // Mostrar solo duplicados
