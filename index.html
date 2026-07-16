@@ -906,6 +906,10 @@
         // Migrar datos antiguos de localStorage a Supabase
         async function migrateOldDataToSupabase() {
             try {
+                // Verificar si ya se hizo la migración
+                const migrationDone = localStorage.getItem('passwordsMigrationDone');
+                if (migrationDone === 'true') return; // Ya fue migrado
+
                 // Verificar si hay datos antiguos en localStorage
                 const localData = localStorage.getItem('passwordManagerData');
                 if (!localData) return; // No hay datos antiguos
@@ -1009,6 +1013,8 @@
 
                 // Limpiar datos antiguos de localStorage después de migrar
                 localStorage.removeItem('passwordManagerData');
+                // Marcar que la migración se completó (para no repetir)
+                localStorage.setItem('passwordsMigrationDone', 'true');
                 console.log('Migración completada');
 
             } catch (error) {
