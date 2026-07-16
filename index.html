@@ -1359,35 +1359,56 @@
                 return;
             }
 
-            showMessage('Limpiando duplicados...', 'info');
+            showMessage('Limpiando duplicados... esto puede tomar unos segundos', 'info');
 
-            // Agrupar por nombre+usuario
-            const groups = {};
-            for (const pwd of state.passwords) {
-                const key = `${pwd.nombre.toLowerCase().trim()}|${pwd.usuario.toLowerCase().trim()}`;
-                if (!groups[key]) {
-                    groups[key] = [];
+            try {
+                // Agrupar por nombre+usuario
+                const groups = {};
+                for (const pwd of state.passwords) {
+                    const key = `${pwd.nombre.toLowerCase().trim()}|${pwd.usuario.toLowerCase().trim()}`;
+                    if (!groups[key]) {
+                        groups[key] = [];
+                    }
+                    groups[key].push(pwd);
                 }
-                groups[key].push(pwd);
-            }
 
-            // Eliminar duplicados más antiguos, mantener más reciente
-            let eliminadas = 0;
-            for (const key in groups) {
-                if (groups[key].length > 1) {
-                    // Ordenar por fecha (más reciente al final)
-                    groups[key].sort((a, b) => new Date(a.fechaCreacion) - new Date(b.fechaCreacion));
+                // Recopilar IDs a eliminar
+                const idsToDelete = [];
+                for (const key in groups) {
+                    if (groups[key].length > 1) {
+                        // Ordenar por fecha (más reciente al final)
+                        groups[key].sort((a, b) => new Date(a.fechaCreacion) - new Date(b.fechaCreacion));
 
-                    // Eliminar todas excepto la última (más reciente)
-                    for (let i = 0; i < groups[key].length - 1; i++) {
-                        await deletePassword(groups[key][i].id);
-                        eliminadas++;
+                        // Marcar todas excepto la última (más reciente) para eliminar
+                        for (let i = 0; i < groups[key].length - 1; i++) {
+                            idsToDelete.push(groups[key][i].id);
+                        }
                     }
                 }
-            }
 
-            showMessage(`✅ Se eliminaron ${eliminadas} duplicados`, 'success');
-            renderPasswords();
+                if (idsToDelete.length === 0) {
+                    showMessage('✅ No hay duplicados para eliminar', 'success');
+                    return;
+                }
+
+                // Eliminar en batch (mucho más rápido)
+                for (const id of idsToDelete) {
+                    await supabaseClient
+                        .from('passwords')
+                        .delete()
+                        .eq('id', id)
+                        .eq('user_id', state.userId);
+                }
+
+                // Recargar datos una sola vez
+                await loadAndRefresh();
+
+                showMessage(`✅ Se eliminaron ${idsToDelete.length} duplicados`, 'success');
+
+            } catch (error) {
+                console.error('Error al limpiar duplicados:', error);
+                showMessage('Error al limpiar: ' + error.message, 'error');
+            }
         }
 
         // Mostrar solo duplicados
