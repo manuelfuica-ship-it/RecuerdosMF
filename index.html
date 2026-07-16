@@ -522,8 +522,12 @@
         <div class="main-content">
             <div id="loginView" class="login-form">
                 <div class="form-group">
-                    <label>Contraseña Maestra</label>
-                    <input type="password" id="masterPassword" placeholder="Ingrese su contraseña maestra" autofocus>
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="su@email.com" autofocus>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="loginPassword" placeholder="Ingrese su contraseña">
                 </div>
                 <button class="btn btn-primary" onclick="authenticate()" style="width: 100%; padding: 14px; font-size: 16px;">Acceder</button>
             </div>
@@ -761,77 +765,130 @@
             }
         }
 
-        // Autenticar
+        // Autenticar con Supabase
         async function authenticate() {
-            const password = document.getElementById('masterPassword').value;
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
 
-            if (!password) {
-                showMessage('Ingrese su contraseña maestra', 'error');
+            if (!email || !password) {
+                showMessage('Ingrese email y contraseña', 'error');
                 return;
             }
 
             try {
                 showMessage('Autenticando...', 'info');
 
-                // Primera vez: crear contraseña maestra
-                if (!state.salt) {
-                    state.salt = generateSalt();
-                    state.masterPassword = password;
-                    state.passwords = [];
-                    state.encryptionKey = await deriveKey(password, state.salt);
-                    await saveData();
-                    showMessage('Contraseña maestra creada', 'success');
-                } else {
-                    // Verificar contraseña
-                    state.masterPassword = password;
-                    const key = await deriveKey(password, state.salt);
+                // Autenticar con Supabase
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
 
-                    // Intentar cargar de Supabase si tiene email registrado
-                    const savedEmail = localStorage.getItem('supabaseEmail');
-                    if (savedEmail) {
-                        console.log('Buscando datos en Supabase para:', savedEmail);
-                        const supabaseData = await loadFromSupabase(savedEmail);
-                        if (supabaseData && supabaseData.passwords.length > 0) {
-                            state.passwords = supabaseData.passwords;
-                            console.log('Contraseñas cargadas desde Supabase:', state.passwords.length);
-                        } else {
-                            // Si no hay en Supabase, cargar de localStorage
-                            if (state.encryptedData && state.encryptedData.data && state.encryptedData.data.length > 0) {
-                                state.passwords = await decrypt(state.encryptedData, key);
-                            } else {
-                                state.passwords = [];
-                            }
-                        }
-                    } else {
-                        // Sin email registrado, cargar de localStorage
-                        if (state.encryptedData && state.encryptedData.data && state.encryptedData.data.length > 0) {
-                            state.passwords = await decrypt(state.encryptedData, key);
-                        } else {
-                            state.passwords = [];
-                        }
-                    }
+                if (error) {
+                    throw new Error(error.message || 'Email o contraseña incorrectos');
                 }
 
+                // Guardar info de autenticación
+                state.userEmail = email;
+                state.userId = data.user.id;
+                localStorage.setItem('supabaseEmail', email);
+
+                // Derivar clave de encriptación de la contraseña
+                state.salt = generateSalt();
+                state.masterPassword = password;
                 state.encryptionKey = await deriveKey(password, state.salt);
-                state.isAuthenticated = true;
-                document.getElementById('loginView').classList.add('hidden');
-                document.getElementById('appView').classList.remove('hidden');
-                document.getElementById('masterPassword').value = '';
-                document.getElementById('message').textContent = '';
-                document.getElementById('message').className = '';
+
+                // Cargar contraseñas desde Supabase
+                const { data: passwords, error: pwdError } = await supabaseClient
+                    .from('passwords')
+                    .select('*')
+                    .eq('user_id', state.userId);
+
+                if (pwdError) {
+                    console.error('Error cargando contraseñas:', pwdError);
+                    state.passwords = [];
+                } else {
+                    // Convertir datos de Supabase al formato local
+                    state.passwords = passwords.map(pwd => ({
+                        id: pwd.id,
+                        nombre: pwd.nombre,
+                        usuario: pwd.usuario,
+                        contraseña: pwd.contraseña_encriptada,
+                        url: pwd.url || '',
+                        notas: pwd.notas || '',
+                        fechaCreacion: pwd.created_at
+                    }));
+                }
 
                 // Asegurar que passwords sea un array
                 if (!Array.isArray(state.passwords)) {
-                    state.passwords = state.passwords ? [state.passwords] : [];
+                    state.passwords = [];
                 }
+
+                state.isAuthenticated = true;
+                document.getElementById('loginView').classList.add('hidden');
+                document.getElementById('appView').classList.remove('hidden');
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('message').textContent = '';
+                document.getElementById('message').className = '';
+
+                // Configurar sincronización en tiempo real
+                setupRealtimeSync();
 
                 renderPasswords();
                 updateStats();
+                showMessage('✅ Autenticado correctamente', 'success');
 
             } catch (error) {
                 console.error('Error en authenticate:', error);
                 showMessage(error.message || 'Error al autenticar', 'error');
                 state.isAuthenticated = false;
+            }
+        }
+
+        // Sincronización en tiempo real
+        function setupRealtimeSync() {
+            if (!state.userId) return;
+
+            const subscription = supabaseClient
+                .channel(`passwords:${state.userId}`)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'passwords',
+                    filter: `user_id=eq.${state.userId}`
+                }, (payload) => {
+                    console.log('Cambio en tiempo real:', payload);
+                    loadAndRefresh();
+                })
+                .subscribe();
+
+            return subscription;
+        }
+
+        // Recargar y refrescar UI
+        async function loadAndRefresh() {
+            if (!state.userId) return;
+
+            const { data: passwords, error } = await supabaseClient
+                .from('passwords')
+                .select('*')
+                .eq('user_id', state.userId);
+
+            if (!error && passwords) {
+                state.passwords = passwords.map(pwd => ({
+                    id: pwd.id,
+                    nombre: pwd.nombre,
+                    usuario: pwd.usuario,
+                    contraseña: pwd.contraseña_encriptada,
+                    url: pwd.url || '',
+                    notas: pwd.notas || '',
+                    fechaCreacion: pwd.created_at
+                }));
+
+                renderPasswords();
+                updateStats();
             }
         }
 
