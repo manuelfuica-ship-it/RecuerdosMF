@@ -857,7 +857,7 @@
                                     data: pwd.contraseña_encriptada
                                 }, state.encryptionKey);
                             } catch (error) {
-                                console.error('Error desencriptando contraseña:', error);
+                                // Silenciado: console.error('Error desencriptando contraseña:', error);
                                 decryptedPassword = '(No se pudo desencriptar)';
                             }
                         }
@@ -1097,7 +1097,7 @@
                                 data: pwd.contraseña_encriptada
                             }, state.encryptionKey);
                         } catch (error) {
-                            console.error('Error desencriptando contraseña:', error);
+                            // Silenciado: console.error('Error desencriptando contraseña:', error);
                             decryptedPassword = '(No se pudo desencriptar)';
                         }
                     }
