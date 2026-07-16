@@ -577,10 +577,6 @@
                         <div class="stat-value" id="totalCount">0</div>
                         <div class="stat-label">Contraseñas guardadas</div>
                     </div>
-                    <div class="stat">
-                        <div class="stat-value" id="lastSync">-</div>
-                        <div class="stat-label">Última sincronización</div>
-                    </div>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
@@ -1792,10 +1788,6 @@
         // Actualizar estadísticas
         function updateStats() {
             document.getElementById('totalCount').textContent = state.passwords.length;
-            if (state.lastSync) {
-                const date = new Date(state.lastSync);
-                document.getElementById('lastSync').textContent = date.toLocaleTimeString('es-ES');
-            }
         }
 
         // Event listeners
