@@ -524,7 +524,6 @@
                 <div class="form-group">
                     <label>Contraseña Maestra</label>
                     <input type="password" id="masterPassword" placeholder="Ingrese su contraseña maestra" autofocus>
-                    <small id="loginHelp" style="color: #999;">Primera vez: cree su contraseña maestra. Siguientes: ingrese para acceder.</small>
                 </div>
                 <button class="btn btn-primary" onclick="authenticate()" style="width: 100%; padding: 14px; font-size: 16px;">Acceder</button>
             </div>
@@ -794,7 +793,6 @@
                 document.getElementById('loginView').classList.add('hidden');
                 document.getElementById('appView').classList.remove('hidden');
                 document.getElementById('masterPassword').value = '';
-                document.getElementById('loginHelp').textContent = '';
                 document.getElementById('message').textContent = '';
                 document.getElementById('message').className = '';
 
