@@ -93,10 +93,35 @@
                 font-size: 18px;
             }
 
+            .header-actions {
+                width: 100%;
+                flex-direction: column;
+                gap: 8px;
+            }
+
             .header-actions .btn {
-                padding: 5px 8px;
-                font-size: 11px;
-                min-width: 60px;
+                padding: 12px 10px;
+                font-size: 14px;
+                min-width: auto;
+                width: 100%;
+            }
+
+            .app-toolbar {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .app-toolbar .btn {
+                padding: 14px;
+                font-size: 14px;
+                width: 100%;
+                min-height: 44px;
+            }
+
+            .btn {
+                min-height: 44px;
+                padding: 12px 16px;
+                font-size: 14px;
             }
         }
 
@@ -524,11 +549,14 @@
                 <div id="loginMessage" style="margin-bottom: 20px;"></div>
                 <div class="form-group">
                     <label>Email</label>
-                    <input type="email" id="loginEmail" placeholder="su@email.com" autofocus>
+                    <input type="email" id="loginEmail" placeholder="su@email.com" autocomplete="email" autofocus>
                 </div>
                 <div class="form-group">
                     <label>Contraseña</label>
-                    <input type="password" id="loginPassword" placeholder="Ingrese su contraseña">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="password" id="loginPassword" placeholder="Ingrese su contraseña" autocomplete="current-password" style="flex: 1;">
+                        <button type="button" class="toggle-password" onclick="toggleLoginPasswordVisibility()" style="padding: 8px 12px; background: #3b82f6; color: white; border-radius: 4px; cursor: pointer; font-size: 13px; border: none;">Ver</button>
+                    </div>
                 </div>
                 <button class="btn btn-primary" onclick="authenticate()" style="width: 100%; padding: 14px; font-size: 16px;">Acceder</button>
             </div>
@@ -1723,6 +1751,20 @@
                 loginEmail.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') authenticate();
                 });
+            }
+        }
+
+        // Toggle para ver contraseña en login
+        function toggleLoginPasswordVisibility() {
+            const input = document.getElementById('loginPassword');
+            const button = event.target;
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                button.textContent = 'Ocultar';
+            } else {
+                input.type = 'password';
+                button.textContent = 'Ver';
             }
         }
 
