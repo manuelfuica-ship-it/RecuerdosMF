@@ -874,40 +874,25 @@
             }
         }
 
-        // Sincronización en tiempo real
-        let realtimeSubscription = null;
+        // Sincronización con polling (cada 5 segundos)
+        let pollInterval = null;
 
         function setupRealtimeSync() {
             if (!state.userId) return;
 
-            try {
-                // Desuscribirse de cualquier suscripción anterior
-                if (realtimeSubscription) {
-                    supabaseClient.removeChannel(realtimeSubscription);
-                }
-
-                // Crear nueva suscripción
-                realtimeSubscription = supabaseClient
-                    .channel(`passwords_user_${state.userId}`)
-                    .on(
-                        'postgres_changes',
-                        {
-                            event: '*',
-                            schema: 'public',
-                            table: 'passwords',
-                            filter: `user_id=eq.${state.userId}`
-                        },
-                        (payload) => {
-                            console.log('Cambio en tiempo real:', payload);
-                            loadAndRefresh();
-                        }
-                    )
-                    .subscribe((status) => {
-                        console.log('Estado de Realtime:', status);
-                    });
-            } catch (error) {
-                console.error('Error configurando Realtime:', error);
+            // Usar polling en lugar de Realtime para mayor compatibilidad
+            if (pollInterval) {
+                clearInterval(pollInterval);
             }
+
+            // Actualizar cada 5 segundos
+            pollInterval = setInterval(() => {
+                if (state.isAuthenticated && state.userId) {
+                    loadAndRefresh();
+                }
+            }, 5000);
+
+            console.log('Polling iniciado (5 segundos)');
         }
 
         // Recargar y refrescar UI
@@ -1543,10 +1528,10 @@
         async function logout() {
             if (confirm('¿Está seguro de que desea cerrar sesión?')) {
                 try {
-                    // Desuscribirse de Realtime
-                    if (realtimeSubscription) {
-                        supabaseClient.removeChannel(realtimeSubscription);
-                        realtimeSubscription = null;
+                    // Detener polling
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
                     }
 
                     // Cerrar sesión en Supabase
