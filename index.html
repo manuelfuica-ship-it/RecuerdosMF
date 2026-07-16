@@ -888,11 +888,11 @@
 
                         return {
                             id: pwd.id,
-                            nombre: pwd.nombre,
-                            usuario: pwd.usuario,
+                            nombre: sanitizeString(pwd.nombre),
+                            usuario: sanitizeString(pwd.usuario),
                             contraseña: decryptedPassword,
-                            url: pwd.url || '',
-                            notas: pwd.notas || '',
+                            url: sanitizeString(pwd.url),
+                            notas: sanitizeString(pwd.notas),
                             fechaCreacion: pwd.created_at
                         };
                     }));
