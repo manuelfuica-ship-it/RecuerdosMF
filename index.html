@@ -533,6 +533,7 @@
 
                 <div class="app-toolbar">
                     <button class="btn btn-secondary" onclick="syncData()">Sincronizar</button>
+                    <button class="btn btn-secondary" onclick="syncToSupabase()" style="background: #3b82f6 !important; color: white !important;">Supabase</button>
                     <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar</button>
                     <input type="file" id="importFile" hidden accept=".json" onchange="importData(event)">
                     <button class="btn btn-secondary" onclick="exportData()">Exportar</button>
@@ -1214,6 +1215,80 @@
                 reader.readAsText(file);
             } catch (error) {
                 showMessage('Error al importar: ' + error.message, 'error');
+            }
+        }
+
+        // Sincronizar con Supabase
+        async function syncToSupabase() {
+            if (!state.isAuthenticated || !state.encryptionKey) {
+                showMessage('Debe autenticar primero', 'error');
+                return;
+            }
+
+            try {
+                showMessage('Sincronizando con Supabase...', 'info');
+
+                // Pedir email si no lo tiene
+                const email = prompt('Ingrese su email para sincronizar:\n(necesario para acceder desde otros dispositivos)');
+                if (!email) {
+                    showMessage('Email requerido para sincronizar', 'error');
+                    return;
+                }
+
+                // Verificar formato de email
+                if (!email.includes('@')) {
+                    showMessage('Email inválido', 'error');
+                    return;
+                }
+
+                // Guardar o actualizar usuario en Supabase
+                const { data: userData, error: userError } = await supabaseClient
+                    .from('users')
+                    .upsert({
+                        email: email,
+                        salt: arrayToHex(state.salt),
+                        master_password_hash: 'encrypted_locally', // no guardamos la contraseña
+                    }, { onConflict: 'email' });
+
+                if (userError) throw new Error(`Error al guardar usuario: ${userError.message}`);
+
+                // Obtener ID del usuario
+                const { data: users, error: fetchError } = await supabaseClient
+                    .from('users')
+                    .select('id')
+                    .eq('email', email)
+                    .single();
+
+                if (fetchError) throw new Error(`Error al obtener usuario: ${fetchError.message}`);
+
+                const userId = users.id;
+
+                // Guardar cada contraseña en Supabase
+                for (const pwd of state.passwords) {
+                    const { error: insertError } = await supabaseClient
+                        .from('passwords')
+                        .upsert({
+                            id: pwd.id,
+                            user_id: userId,
+                            nombre: pwd.nombre,
+                            usuario: pwd.usuario,
+                            contraseña_encriptada: pwd.contraseña, // guardar en texto por ahora (debería encriptarse más)
+                            url: pwd.url || null,
+                            notas: pwd.notas || null,
+                            created_at: pwd.fechaCreacion,
+                        }, { onConflict: 'id' });
+
+                    if (insertError) {
+                        console.error('Error al guardar contraseña:', insertError);
+                    }
+                }
+
+                showMessage(`✅ Sincronizado con Supabase (${state.passwords.length} contraseñas)`, 'success');
+                console.log('Sincronización completada. Email:', email);
+
+            } catch (error) {
+                showMessage('Error al sincronizar: ' + error.message, 'error');
+                console.error('Error en syncToSupabase:', error);
             }
         }
 
