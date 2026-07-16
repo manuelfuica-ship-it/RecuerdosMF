@@ -895,7 +895,18 @@
                 // Desencriptar datos antiguos
                 let oldPasswords = [];
                 try {
-                    oldPasswords = await decrypt(data.encryptedData, state.encryptionKey);
+                    // El archivo antiguo tiene su propio salt, necesitamos usar ese
+                    // Para desencriptar correctamente
+                    let oldSalt = state.salt;
+                    if (data.salt && data.salt.length > 0) {
+                        oldSalt = hexToArray(data.salt);
+                    }
+
+                    // Derivar clave con el salt del archivo antiguo
+                    const oldKey = await deriveKey(state.masterPassword, oldSalt);
+
+                    // Desencriptar usando la clave derivada del salt antiguo
+                    oldPasswords = await decrypt(data.encryptedData, oldKey);
                     if (!Array.isArray(oldPasswords)) {
                         oldPasswords = [];
                     }
