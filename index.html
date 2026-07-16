@@ -875,23 +875,39 @@
         }
 
         // Sincronización en tiempo real
+        let realtimeSubscription = null;
+
         function setupRealtimeSync() {
             if (!state.userId) return;
 
-            const subscription = supabaseClient
-                .channel(`passwords:${state.userId}`)
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'passwords',
-                    filter: `user_id=eq.${state.userId}`
-                }, (payload) => {
-                    console.log('Cambio en tiempo real:', payload);
-                    loadAndRefresh();
-                })
-                .subscribe();
+            try {
+                // Desuscribirse de cualquier suscripción anterior
+                if (realtimeSubscription) {
+                    supabaseClient.removeChannel(realtimeSubscription);
+                }
 
-            return subscription;
+                // Crear nueva suscripción
+                realtimeSubscription = supabaseClient
+                    .channel(`passwords_user_${state.userId}`)
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'passwords',
+                            filter: `user_id=eq.${state.userId}`
+                        },
+                        (payload) => {
+                            console.log('Cambio en tiempo real:', payload);
+                            loadAndRefresh();
+                        }
+                    )
+                    .subscribe((status) => {
+                        console.log('Estado de Realtime:', status);
+                    });
+            } catch (error) {
+                console.error('Error configurando Realtime:', error);
+            }
         }
 
         // Recargar y refrescar UI
@@ -1527,6 +1543,12 @@
         async function logout() {
             if (confirm('¿Está seguro de que desea cerrar sesión?')) {
                 try {
+                    // Desuscribirse de Realtime
+                    if (realtimeSubscription) {
+                        supabaseClient.removeChannel(realtimeSubscription);
+                        realtimeSubscription = null;
+                    }
+
                     // Cerrar sesión en Supabase
                     await supabaseClient.auth.signOut();
                 } catch (error) {
@@ -1538,6 +1560,7 @@
                 state.masterPassword = null;
                 state.userId = null;
                 state.userEmail = null;
+                state.passwords = [];
                 document.getElementById('loginEmail').value = '';
                 document.getElementById('loginPassword').value = '';
                 document.getElementById('appView').classList.add('hidden');
