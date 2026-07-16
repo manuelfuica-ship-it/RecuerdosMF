@@ -991,24 +991,39 @@
         async function savePassword(event) {
             event.preventDefault();
 
-            if (!state.passwords) {
-                state.passwords = [];
+            if (!state.isAuthenticated || !state.userId) {
+                showMessage('No autenticado', 'error');
+                return;
             }
 
-            const password = {
-                id: Date.now().toString(),
-                nombre: document.getElementById('addName').value,
-                usuario: document.getElementById('addUsername').value,
-                contraseña: document.getElementById('addPassword').value,
-                url: document.getElementById('addUrl').value,
-                notas: document.getElementById('addNotes').value,
-                fechaCreacion: new Date().toISOString()
-            };
+            try {
+                const passwordData = {
+                    nombre: document.getElementById('addName').value,
+                    usuario: document.getElementById('addUsername').value,
+                    contraseña_encriptada: document.getElementById('addPassword').value,
+                    url: document.getElementById('addUrl').value || null,
+                    notas: document.getElementById('addNotes').value || null,
+                    user_id: state.userId,
+                    created_at: new Date().toISOString()
+                };
 
-            state.passwords.push(password);
-            await saveData();
-            renderPasswords();
-            closeModal('addModal');
+                // Guardar en Supabase
+                const { data, error } = await supabaseClient
+                    .from('passwords')
+                    .insert([passwordData]);
+
+                if (error) throw new Error(error.message);
+
+                showMessage('✅ Contraseña guardada', 'success');
+                renderPasswords();
+                closeModal('addModal');
+
+                // Recargar para mostrar el ID generado
+                await loadAndRefresh();
+
+            } catch (error) {
+                showMessage('Error al guardar: ' + error.message, 'error');
+            }
         }
 
         // Abrir modal para editar
@@ -1029,32 +1044,67 @@
         async function updatePassword(event) {
             event.preventDefault();
 
-            const id = document.getElementById('editId').value;
-            const index = state.passwords.findIndex(p => p.id === id);
+            if (!state.isAuthenticated || !state.userId) {
+                showMessage('No autenticado', 'error');
+                return;
+            }
 
-            if (index === -1) return;
+            try {
+                const id = document.getElementById('editId').value;
 
-            state.passwords[index] = {
-                ...state.passwords[index],
-                nombre: document.getElementById('editName').value,
-                usuario: document.getElementById('editUsername').value,
-                contraseña: document.getElementById('editPassword').value,
-                url: document.getElementById('editUrl').value,
-                notas: document.getElementById('editNotes').value
-            };
+                const passwordData = {
+                    nombre: document.getElementById('editName').value,
+                    usuario: document.getElementById('editUsername').value,
+                    contraseña_encriptada: document.getElementById('editPassword').value,
+                    url: document.getElementById('editUrl').value || null,
+                    notas: document.getElementById('editNotes').value || null,
+                    updated_at: new Date().toISOString()
+                };
 
-            await saveData();
-            renderPasswords();
-            closeModal('editModal');
+                // Actualizar en Supabase
+                const { error } = await supabaseClient
+                    .from('passwords')
+                    .update(passwordData)
+                    .eq('id', id)
+                    .eq('user_id', state.userId);
+
+                if (error) throw new Error(error.message);
+
+                showMessage('✅ Contraseña actualizada', 'success');
+                renderPasswords();
+                closeModal('editModal');
+                await loadAndRefresh();
+
+            } catch (error) {
+                showMessage('Error al actualizar: ' + error.message, 'error');
+            }
         }
 
         // Eliminar contraseña
         async function deletePassword(id) {
             if (!confirm('¿Está seguro de que desea eliminar esta contraseña?')) return;
 
-            state.passwords = state.passwords.filter(p => p.id !== id);
-            await saveData();
-            renderPasswords();
+            if (!state.isAuthenticated || !state.userId) {
+                showMessage('No autenticado', 'error');
+                return;
+            }
+
+            try {
+                // Eliminar de Supabase
+                const { error } = await supabaseClient
+                    .from('passwords')
+                    .delete()
+                    .eq('id', id)
+                    .eq('user_id', state.userId);
+
+                if (error) throw new Error(error.message);
+
+                showMessage('✅ Contraseña eliminada', 'success');
+                await loadAndRefresh();
+
+            } catch (error) {
+                showMessage('Error al eliminar: ' + error.message, 'error');
+            }
         }
 
         // Copiar al portapapeles
