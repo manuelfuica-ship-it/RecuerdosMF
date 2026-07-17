@@ -683,6 +683,7 @@
                 <div id="message"></div>
 
                 <div class="app-toolbar">
+                    <button class="btn btn-secondary" id="recoverBtn" onclick="recoverEncryptedPasswords()" style="display: none; background: #f59e0b !important;">Recuperar</button>
                     <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar</button>
                     <input type="file" id="importFile" hidden accept=".json" onchange="importData(event)">
                     <button class="btn btn-secondary" onclick="exportData()">Exportar</button>
@@ -926,6 +927,123 @@
             return String(str);
         }
 
+        // Re-encriptar solo las contraseñas dañadas desde archivo antiguo
+        async function recoverEncryptedPasswords() {
+            if (!state.userId || !state.encryptionKey) {
+                showMessage('Debe estar autenticado primero', 'error');
+                return;
+            }
+
+            if (!confirm('Esto intentará recuperar solo las contraseñas que no se puedan desencriptar.\nLas contraseñas que ya funcionan se mantendrán intactas.\n\n¿Continuar?')) {
+                return;
+            }
+
+            try {
+                showMessage('Analizando contraseñas dañadas...', 'info');
+
+                // Verificar si hay datos encriptados en state
+                if (!state.encryptedData) {
+                    showMessage('No hay datos antiguos disponibles', 'error');
+                    return;
+                }
+
+                // Desencriptar datos con el formato antiguo
+                const decrypted = await decrypt(state.encryptedData, state.encryptionKey);
+
+                if (!decrypted || !Array.isArray(decrypted)) {
+                    showMessage('No se pudieron desencriptar los datos antiguos', 'error');
+                    return;
+                }
+
+                // Obtener todas las contraseñas actuales de Supabase
+                const { data: currentPasswords } = await supabaseClient
+                    .from('passwords')
+                    .select('*')
+                    .eq('user_id', state.userId);
+
+                // Crear mapa de nombres+usuarios actuales para identificar cuáles están dañados
+                const damagedMap = {};
+                for (const pwd of currentPasswords || []) {
+                    const key = `${(pwd.nombre || '').toLowerCase()}|${(pwd.usuario || '').toLowerCase()}`;
+
+                    // Verificar si se puede desencriptar
+                    let canDecrypt = false;
+                    if (pwd.contraseña_iv && pwd.contraseña_encriptada) {
+                        const result = await decrypt({
+                            iv: pwd.contraseña_iv,
+                            data: pwd.contraseña_encriptada
+                        }, state.encryptionKey);
+                        canDecrypt = result !== null;
+                    }
+
+                    if (!canDecrypt) {
+                        damagedMap[key] = pwd.id; // Guardar ID para actualizar
+                    }
+                }
+
+                let recuperadas = 0;
+                let fallidas = 0;
+
+                // Re-importar solo las contraseñas dañadas
+                for (const pwd of decrypted) {
+                    try {
+                        const nombre = String(pwd.nombre || '').trim();
+                        const usuario = String(pwd.usuario || '').trim();
+                        const contraseña = String(pwd.contraseña || '').trim();
+                        const key = `${nombre.toLowerCase()}|${usuario.toLowerCase()}`;
+
+                        // Solo recuperar si está en damagedMap
+                        if (!damagedMap[key]) {
+                            continue; // Esta contraseña está bien, no tocarla
+                        }
+
+                        if (!nombre || !usuario || !contraseña) {
+                            fallidas++;
+                            continue;
+                        }
+
+                        // Encriptar con nuevo formato (con IV individual)
+                        const encrypted = await encrypt(contraseña, state.encryptionKey);
+
+                        // Actualizar en lugar de insertar
+                        const { error } = await supabaseClient
+                            .from('passwords')
+                            .update({
+                                contraseña_encriptada: encrypted.data,
+                                contraseña_iv: encrypted.iv,
+                                url: pwd.url ? String(pwd.url).trim() : null,
+                                notas: pwd.notas ? String(pwd.notas).trim() : null
+                            })
+                            .eq('id', damagedMap[key]);
+
+                        if (!error) {
+                            recuperadas++;
+                        } else {
+                            fallidas++;
+                        }
+                    } catch (error) {
+                        console.error('Error recuperando contraseña:', error);
+                        fallidas++;
+                    }
+                }
+
+                // Recargar datos
+                await loadAndRefresh();
+
+                if (recuperadas > 0) {
+                    showMessage(`✅ Se recuperaron ${recuperadas} contraseñas`, 'success');
+                } else {
+                    showMessage('✅ Todas las contraseñas están bien', 'success');
+                }
+
+                if (fallidas > 0) {
+                    showMessage(`⚠️ ${fallidas} contraseñas no se pudieron recuperar`, 'error');
+                }
+            } catch (error) {
+                showMessage('Error en recuperación: ' + error.message, 'error');
+            }
+        }
+
         // Autenticar con Supabase
         async function authenticate() {
             const email = document.getElementById('loginEmail').value;
@@ -1013,6 +1131,11 @@
 
                 // Configurar sincronización en tiempo real
                 setupRealtimeSync();
+
+                // Mostrar botón de recuperación si hay datos antiguos
+                if (state.encryptedData) {
+                    document.getElementById('recoverBtn').style.display = 'block';
+                }
 
                 // Verificar si hay datos antiguos para migrar
                 await migrateOldDataToSupabase();
