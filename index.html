@@ -1002,10 +1002,17 @@
                             continue;
                         }
 
+                        // Verificación adicional: confirmar que el ID existe
+                        const passwordId = damagedMap[key];
+                        if (!passwordId) {
+                            fallidas++;
+                            continue;
+                        }
+
                         // Encriptar con nuevo formato (con IV individual)
                         const encrypted = await encrypt(contraseña, state.encryptionKey);
 
-                        // Actualizar en lugar de insertar
+                        // Actualizar SOLO si existe (no insertar)
                         const { error } = await supabaseClient
                             .from('passwords')
                             .update({
@@ -1014,7 +1021,8 @@
                                 url: pwd.url ? String(pwd.url).trim() : null,
                                 notas: pwd.notas ? String(pwd.notas).trim() : null
                             })
-                            .eq('id', damagedMap[key]);
+                            .eq('id', passwordId)
+                            .eq('user_id', state.userId);
 
                         if (!error) {
                             recuperadas++;
