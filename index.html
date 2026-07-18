@@ -1080,8 +1080,26 @@
                 state.userId = data.user.id;
                 localStorage.setItem('supabaseEmail', email);
 
-                // Derivar clave de encriptación de la contraseña
-                state.salt = generateSalt();
+                // Cargar salt de la BD (si existe) o generar uno nuevo
+                const { data: userData } = await supabaseClient
+                    .from('users')
+                    .select('salt')
+                    .eq('id', state.userId)
+                    .single();
+
+                if (userData && userData.salt && userData.salt.length > 0) {
+                    // Usar salt existente de la BD
+                    state.salt = hexToArray(userData.salt);
+                } else {
+                    // Generar nuevo salt si no existe (primer login)
+                    state.salt = generateSalt();
+                    // Guardar el salt en la BD para futuros logins
+                    await supabaseClient
+                        .from('users')
+                        .update({ salt: arrayToHex(state.salt) })
+                        .eq('id', state.userId);
+                }
+
                 state.masterPassword = password;
                 state.encryptionKey = await deriveKey(password, state.salt);
 
